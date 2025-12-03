@@ -1,0 +1,79 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configuração do banco de dados na nuvem (Railway)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelagem do WMS OGGI:
+
+// 1. USUÁRIOS E PERMISSÕES (ACL)
+model User {
+  id              String   @id @default(uuid())
+  login           String   @unique
+  password        String
+  perfil          String   // Gerente, Analista, Conferente, etc.
+  pode_ajustar_saldo Boolean @default(false) // Permissão restrita (ACL)
+
+  movimentos Movimento[] // Relação com logs de auditoria
+}
+
+// 2. CADASTRO DE PRODUTOS
+model Produto {
+  id              String   @id @default(uuid())
+  codigo          String   @unique // Ex: 000009
+  descricao       String
+  duracao_maturacao_h Int // Ex: 48 horas
+  
+  pallets Pallet[] // Relação 1:N com Pallets
+}
+
+// 3. ESTRUTURA FÍSICA DO ARMAZÉM
+model Armazem {
+  id              String   @id @default(uuid())
+  endereco_completo String @unique // Ex: DI-L-01-01
+  tipo_estrutura    String // Ex: DRIVE_IN_LONGO, PORTA_PALLETS
+  capacidade_pallets Int // Capacidade total de posições
+  codigo_restrito   String? // Restrição de código (Ex: Napolitano)
+
+  pallets Pallet[] // Relação 1:N com Pallets
+}
+
+// 4. RASTREIO DA CARGA
+model Pallet {
+  id              String   @id @default(uuid())
+  num_pallet      String   // Ex: PALETE 24
+  lote            String
+  quantidade_caixas Int
+  
+  id_produto      String
+  produto         Produto  @relation(fields: [id_produto], references: [id])
+  
+  endereco_atual  String
+  armazem         Armazem  @relation(fields: [endereco_atual], references: [endereco_completo])
+  
+  status_maturacao String // YL (Amarelo), GR (Verde), RD (Vermelho)
+  
+  movimentos Movimento[] // Relação com logs de auditoria
+}
+
+// 5. LOG DE AUDITORIA
+model Movimento {
+  id              String   @id @default(uuid())
+  tipo_movimento  String // RECEBIMENTO, AJUSTE_SALDO, EXPEDICAO
+  motivo_ajuste   String? // Obrigatório para AJUSTE_SALDO
+  data_hora       DateTime @default(now())
+  
+  id_pallet       String
+  pallet          Pallet   @relation(fields: [id_pallet], references: [id])
+  
+  id_usuario      String
+  usuario         User     @relation(fields: [id_usuario], references: [id])
+  
+  endereco_origem String?
+  endereco_destino String?
+}
