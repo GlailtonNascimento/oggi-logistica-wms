@@ -1,7 +1,6 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../../../../config/db.js';
-// Importe o Pallet Model global se ele for usado para associações 
-// (Ex: Um Recebimento tem muitos Pallets)
+import User from "../../../../models/User.js";
 
 const Recebimento = sequelize.define('Recebimento', {
     id: {
@@ -10,16 +9,27 @@ const Recebimento = sequelize.define('Recebimento', {
         autoIncrement: true
     },
     tipoEntrada: {
-        type: DataTypes.ENUM('PRODUCAO', 'TRANSFERENCIA', 'COMPRA'), // Tipos de entrada
+        // Expandido para alinhar com as novas origens (Produção Interna/Externa)
+        type: DataTypes.ENUM('PRODUCAO', 'TRANSFERENCIA', 'COMPRA', 'RETORNO'),
         allowNull: false
     },
     status: {
         type: DataTypes.ENUM('PENDENTE', 'CONCLUIDO', 'CANCELADO'),
         defaultValue: 'PENDENTE'
     },
-    usuarioId: { // Quem registrou este documento de Recebimento
+    // --- CAMPO PARA RASTREABILIDADE ---
+    origemRegistro: {
+        type: DataTypes.STRING,
+        defaultValue: 'MANUAL', // Ex: 'COLETOR', 'APP_OCR', 'SISTEMA'
+        allowNull: true
+    },
+    usuarioId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     },
     dataHora: {
         type: DataTypes.DATE,
@@ -29,10 +39,11 @@ const Recebimento = sequelize.define('Recebimento', {
         type: DataTypes.TEXT
     }
 }, {
-    tableName: 'recebimentos', // Tabela principal para os documentos de entrada
+    tableName: 'recebimentos',
     timestamps: true
 });
 
-// As associações com Pallet e Usuário devem ser definidas aqui se necessário.
+// 🔥 ASSOCIAÇÕES
+Recebimento.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
 
 export default Recebimento;

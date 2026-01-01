@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../../../../config/db.js";
-import User from "../../../../models/User.js"; // 🔥 IMPORTA O MODEL USER GLOBAL
+import User from "../../../../models/User.js";
 
 const RegistroTurno = sequelize.define('RegistroTurno', {
     id: {
@@ -9,7 +9,7 @@ const RegistroTurno = sequelize.define('RegistroTurno', {
         autoIncrement: true
     },
     dataLote: {
-        type: DataTypes.DATEONLY, // Ex: '2025-12-21'
+        type: DataTypes.DATEONLY,
         allowNull: false
     },
     turno: {
@@ -17,17 +17,27 @@ const RegistroTurno = sequelize.define('RegistroTurno', {
         allowNull: false
     },
     status: {
-        type: DataTypes.ENUM('ABERTO', 'FECHADO', 'AUDITADO'), // Status do documento consolidado
+        type: DataTypes.ENUM('ABERTO', 'FECHADO', 'AUDITADO'),
         defaultValue: 'ABERTO'
     },
     conferenteId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'users', // Referencia o nome da tabela do User
+            model: 'users',
             key: 'id'
         }
     },
+    // --- CAMPOS DE SUPORTE PARA RASTREAMENTO E COLETORES ---
+    unidadeLogistica: { // Opcional: para identificar a planta ou setor
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    totalPalletsRegistrados: { // Contador para facilitar auditoria rápida
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    // --- CAMPOS ORIGINAIS MANTIDOS ---
     observacoesGerais: {
         type: DataTypes.TEXT
     },
@@ -37,7 +47,7 @@ const RegistroTurno = sequelize.define('RegistroTurno', {
     horaFim: {
         type: DataTypes.TIME
     },
-    resumoProducao: { // Opcional: Para armazenar o JSON do resumo ao fechar
+    resumoProducao: { 
         type: DataTypes.JSON
     }
 }, {
@@ -45,7 +55,7 @@ const RegistroTurno = sequelize.define('RegistroTurno', {
     timestamps: true
 });
 
-// 🔥 ASSOCIAÇÕES
+// 🔥 ASSOCIAÇÕES (MANTIDAS)
 RegistroTurno.belongsTo(User, { foreignKey: 'conferenteId', as: 'conferente' });
 
 export default RegistroTurno;

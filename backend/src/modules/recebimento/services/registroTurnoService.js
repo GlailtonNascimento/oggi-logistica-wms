@@ -5,7 +5,6 @@ import FotoRegistro from '../models/FotoRegistro.js';
 
 class RegistroTurnoService {
 
-    // Auxiliar para calcular o resumo da produção (para o fechamento do lote)
     gerarResumo(pallets) {
         const resumo = {};
         for (const pallet of pallets) {
@@ -16,28 +15,20 @@ class RegistroTurnoService {
                     palletsProduzidos: 0,
                     palletsFracao: 0,
                     palletsAmostra: 0,
-                    caixaTotalProduzida: 0,
-                    fotosRegistradas: (pallet.fotos && pallet.fotos.length > 0)
+                    caixaTotalProduzida: 0
                 };
             }
-
             if (pallet.statusProducao === 'COMPLETO') resumo[codigo].palletsProduzidos++;
             if (pallet.statusProducao === 'FRACAO') resumo[codigo].palletsFracao++;
             if (pallet.statusProducao === 'AMOSTRA') resumo[codigo].palletsAmostra++;
-
-            // Certifique-se de que a soma é numérica
             resumo[codigo].caixaTotalProduzida += parseFloat(pallet.quantidadeReal || 0);
         }
         return resumo;
     }
 
-    /**
-     * 1. REGISTRO INDIVIDUAL DE PALLET DURANTE O TURNO
-     */
     async registrarPalletIndividual(dados) {
         try {
-            // 1. Encontrar ou Criar o RegistroTurno (Lote/Turno) ABERTO
-            const [registroTurno, created] = await RegistroTurno.findOrCreate({
+            const [registroTurno] = await RegistroTurno.findOrCreate({
                 where: {
                     conferenteId: dados.conferenteId,
                     turno: dados.turno,
@@ -49,67 +40,62 @@ class RegistroTurnoService {
                 }
             });
 
-            // 2. Criar o PalletRegistro
+            // LÓGICA AUTOMÁTICA DE DATAS (SORVETE)
+            const dataFab = new Date(dados.dataLote);
+            const dataVenc = new Date(dataFab);
+            dataVenc.setMonth(dataVenc.getMonth() + 24); // +24 meses
+
+            const dataLib = new Date(dataFab);
+            dataLib.setHours(dataLib.getHours() + 48); // +48 horas
+
             const palletCriado = await PalletRegistro.create({
                 ...dados.palletData,
                 registroTurnoId: registroTurno.id,
-                statusProducao: dados.palletData.status,
+                statusProducao: dados.palletData.statusProducao || 'COMPLETO',
+                status: 'EM_QUARENTENA', // Automático
+                dataFabricacao: dataFab,
+                dataVencimento: dataVenc,
+                dataQuarentenaFim: dataLib,
                 horaInicioRegistro: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             });
 
-            // 3. Registrar Fotos
-            if (dados.fotos && dados.fotos.length > 0) {
-                const fotos = dados.fotos.map(foto => ({
-                    urlCaminho: foto.url,
-                    tipo: foto.tipo,
-                    palletId: palletCriado.id
-                }));
-                await FotoRegistro.bulkCreate(fotos);
+            // Registro de Fotos
+            const fotosParaInserir = [];
+            if (dados.fotoUrl) {
+                fotosParaInserir.push({ urlCaminho: dados.fotoUrl, tipo: 'RECEBIMENTO', palletId: palletCriado.id });
             }
+            if (dados.fotos && dados.fotos.length > 0) {
+                dados.fotos.forEach(f => {
+                    fotosParaInserir.push({ urlCaminho: f.url, tipo: f.tipo || 'DETALHE', palletId: palletCriado.id });
+                });
+            }
+            if (fotosParaInserir.length > 0) await FotoRegistro.bulkCreate(fotosParaInserir);
 
-            return { success: true, message: 'Pallet registrado individualmente e vinculado ao Lote/Turno.', pallet: palletCriado };
-
+            return { success: true, message: 'Pallet registrado (Quarentena 48h ativa).', pallet: palletCriado };
         } catch (error) {
             console.error(error);
-            return { success: false, error: error.message || 'Erro ao registrar pallet individualmente.' };
+            return { success: false, error: error.message };
         }
     }
 
-    /**
-     * 2. FECHAMENTO DO LOTE/TURNO E GERAÇÃO DO DOCUMENTO CONSOLIDADO
-     */
     async fecharLoteTurno(registroTurnoId, observacoesFinais) {
         try {
             const registro = await RegistroTurno.findByPk(registroTurnoId, {
-                include: [{
-                    model: PalletRegistro,
-                    as: 'pallets',
-                    include: [{ model: FotoRegistro, as: 'fotos' }]
-                }]
+                include: [{ model: PalletRegistro, as: 'pallets' }]
             });
+            if (!registro || registro.status !== 'ABERTO') return { success: false, error: 'Turno inválido ou fechado.' };
 
-            if (!registro || registro.status !== 'ABERTO') {
-                return { success: false, error: 'Registro de turno inválido ou já fechado.' };
-            }
-
-            // Gera o resumo
             const resumoPorProduto = this.gerarResumo(registro.pallets);
-
-            // Atualiza e fecha o RegistroTurno
             await registro.update({
                 status: 'FECHADO',
                 observacoesGerais: observacoesFinais,
                 horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                 resumoProducao: resumoPorProduto,
             });
-
-            return { success: true, message: 'Lote/Turno fechado e Documento Consolidado gerado!', documento: registro };
-
+            return { success: true, message: 'Lote fechado.', documento: registro };
         } catch (error) {
-            console.error(error);
-            return { success: false, error: error.message || 'Erro ao fechar lote/turno.' };
+            return { success: false, error: error.message };
         }
     }
 }
-
 export default new RegistroTurnoService();

@@ -1,7 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../../../../config/db.js";
 import RegistroTurno from "./RegistroTurno.js";
-// IMPORTAR MODEL PRODUTO AQUI SE NECESSÁRIO
 
 const PalletRegistro = sequelize.define('PalletRegistro', {
     id: {
@@ -9,6 +8,29 @@ const PalletRegistro = sequelize.define('PalletRegistro', {
         primaryKey: true,
         autoIncrement: true
     },
+    // --- CAMPOS PARA O COLETOR E LOGÍSTICA ---
+    barcode: {
+        type: DataTypes.STRING,
+        allowNull: true // Permite nulo se for via OCR manual primeiro
+    },
+    status: {
+        type: DataTypes.ENUM('EM_QUARENTENA', 'DISPONIVEL', 'BLOQUEADO', 'EXPEDIDO'),
+        defaultValue: 'EM_QUARENTENA'
+    },
+    // --- CAMPOS DE CONTROLE DE TEMPO (SORVETE) ---
+    dataFabricacao: {
+        type: DataTypes.DATE,
+        allowNull: true // Será preenchido pelo Service baseado na dataLote
+    },
+    dataVencimento: {
+        type: DataTypes.DATE,
+        allowNull: true // Calculado pelo Service (24 meses)
+    },
+    dataQuarentenaFim: {
+        type: DataTypes.DATE,
+        allowNull: true // Calculado pelo Service (48 horas)
+    },
+    // --- SEUS CAMPOS ORIGINAIS MANTIDOS ---
     codigoProduto: {
         type: DataTypes.STRING,
         allowNull: false
@@ -30,7 +52,7 @@ const PalletRegistro = sequelize.define('PalletRegistro', {
         type: DataTypes.ENUM('COMPLETO', 'FRACAO', 'AMOSTRA'),
         allowNull: false
     },
-    registroTurnoId: { // Chave estrangeira para o RegistroTurno
+    registroTurnoId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
@@ -45,11 +67,11 @@ const PalletRegistro = sequelize.define('PalletRegistro', {
         type: DataTypes.TIME
     }
 }, {
-    tableName: 'pallets_registro_producao', // Tabela dedicada
+    tableName: 'pallets_registro_producao',
     timestamps: true
 });
 
-// 🔥 ASSOCIAÇÕES
+// 🔥 ASSOCIAÇÕES (MANTIDAS)
 PalletRegistro.belongsTo(RegistroTurno, { foreignKey: 'registroTurnoId', as: 'turno' });
 RegistroTurno.hasMany(PalletRegistro, { foreignKey: 'registroTurnoId', as: 'pallets' });
 

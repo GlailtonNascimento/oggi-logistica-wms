@@ -1,29 +1,40 @@
-import recebimentoService from '../services/recebimentoService.js'; // Assumindo que este é o seu service antigo
-import { StatusCodes } from 'http-status-codes'; // Se você estiver usando o pacote http-status-codes
+import recebimentoService from '../services/recebimentoService.js';
+import { StatusCodes } from 'http-status-codes';
 
 class RecebimentoController {
 
-    // Rota: POST /api/recebimento
+    /**
+     * Rota: POST /api/recebimento
+     * Utilizado para entradas de produção (Coletor ou OCR) ou transferências
+     */
     async criarRecebimento(req, res) {
         try {
-            const { tipoEntrada, pallets, usuarioId } = req.body;
+            // Desestruturação incluindo observacoes para o histórico de auditoria
+            const { tipoEntrada, pallets, usuarioId, observacoes } = req.body;
 
+            // Validação técnica: impede o processamento de listas vazias
+            if (!pallets || !Array.isArray(pallets) || pallets.length === 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    error: 'Nenhum pallet informado para o recebimento.'
+                });
+            }
+
+            // Envia para o Service que aplicará as travas de maturação e validade
             const resultado = await recebimentoService.processarRecebimento({
-                tipoEntrada,
-                pallets,
-                usuarioId
+                tipoEntrada: tipoEntrada || 'PRODUCAO_INTERNA',
+                pallets, // Contém barcode/OCR e dados do produto
+                usuarioId,
+                observacoes
             });
 
             if (resultado.success) {
-                // Retorna 201 Created
                 res.status(StatusCodes.CREATED).json(resultado);
             } else {
-                // Retorna 400 Bad Request
                 res.status(StatusCodes.BAD_REQUEST).json(resultado);
             }
         } catch (error) {
             console.error('Erro ao criar recebimento:', error);
-            // Retorna 500 Internal Server Error
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 error: 'Erro interno no processamento de recebimento.'
@@ -31,9 +42,13 @@ class RecebimentoController {
         }
     }
 
-    // Rota: GET /api/recebimento
+    /**
+     * Rota: GET /api/recebimento
+     * Lista o histórico de recebimentos para consulta do Analista
+     */
     async listarRecebimentos(req, res) {
         try {
+            // Filtros dinâmicos via query string
             const resultado = await recebimentoService.listarRecebimentos(req.query);
 
             res.status(StatusCodes.OK).json(resultado);
@@ -41,12 +56,10 @@ class RecebimentoController {
             console.error('Erro ao listar recebimentos:', error);
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                error: error.message
+                error: 'Erro ao carregar lista de recebimentos.'
             });
         }
     }
-
-    // Outros métodos como getRecebimentoById, cancelarRecebimento, etc.
 }
 
 export default new RecebimentoController();
