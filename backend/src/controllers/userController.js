@@ -10,6 +10,7 @@ export const createUser = async (req, res) => {
         const newUser = await User.create({
             login,
             password,
+
             perfil,
             pode_ajustar_saldo
         });
