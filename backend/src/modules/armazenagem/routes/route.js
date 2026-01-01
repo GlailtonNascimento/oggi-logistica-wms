@@ -1,28 +1,30 @@
 import express from 'express';
-import ArmazenagemController from '../controllers/armazenagemControllers.js';
+// IMPORTANTE: Importando do unificador 'index.js' que contém o alocacaoController
+import { alocacaoController } from '../controllers/index.js';
+
 const router = express.Router();
 
 // ----------------------------------------------------------------------
-// ROTAS DO MÓDULO ARMAZENAGEM
+// ROTAS DO MÓDULO ARMAZENAGEM (ALOCAÇÃO)
 // ----------------------------------------------------------------------
 
 /**
- * Alocação Inicial (Empilhador coloca o pallet em um endereço pela primeira vez)
+ * Alocação Inicial (Empilhador coloca o pallet em um endereço)
  * POST /api/armazenagem/alocar
  */
-router.post('/alocar', ArmazenagemController.alocarPalletNoEndereco);
+router.post('/alocar', alocacaoController.alocarPalletNoEndereco);
 
 /**
- * Movimentação Interna (Troca de endereço)
+ * Movimentação Interna (Troca de endereço do pallet)
  * POST /api/armazenagem/movimentar
  */
-router.post('/movimentar', ArmazenagemController.movimentarPallet);
+router.post('/movimentar', alocacaoController.movimentarPallet);
 
 /**
- * Consulta de Endereço (Empilhador escaneia o endereço para ver o conteúdo)
+ * Consulta de Endereço (Ver o que tem dentro da posição)
  * GET /api/armazenagem/endereco/:codigo
  */
-router.get('/endereco/:codigo', ArmazenagemController.buscarEndereco);
+router.get('/endereco/:codigo', alocacaoController.buscarEndereco);
 
 // ----------------------------------------------------------------------
 

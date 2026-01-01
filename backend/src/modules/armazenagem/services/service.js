@@ -1,9 +1,9 @@
-// Arquivo: src/modules/armazenagem/services/service.js
+// src/modules/armazenagem/services/service.js
 
-// Importa o serviço principal
-import ArmazenagemService from './armazenagemService.js';
+import alocacaoService from './alocacaoService.js';
 
-// Re-exporta o service principal para fácil acesso.
 export {
-    ArmazenagemService
+    alocacaoService
 };
+
+export default alocacaoService;
