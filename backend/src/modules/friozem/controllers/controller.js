@@ -1,3 +1,9 @@
-import FriozemController from "./friozemController.js";
+import FriozemController from './friozemController.js';
+import SeparacaoController from './separacaoController.js';
+import OrdemMovimentacaoController from './ordemMovimentacaoController.js';
 
-export default FriozemController;
+export {
+    FriozemController,
+    SeparacaoController,
+    OrdemMovimentacaoController
+};

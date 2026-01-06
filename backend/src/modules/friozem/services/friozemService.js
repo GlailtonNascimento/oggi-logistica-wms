@@ -1,16 +1,18 @@
-import { EnderecoFriozem } from '../model.js';
+import { EnderecoFriozem, OrdemMovimentacaoFriozem } from '../model.js';
 import Pallet from '../../../models/Pallet.js';
 import { Op } from 'sequelize';
 
 class FriozemService {
+
     /**
-     * Lógica principal de decisão para o Coletor/Celular
-     * Gerencia: Picking, Armazenagem Comum e Avaria no Estoque
+     * ================================
+     * 1️⃣ ENTRADA / ENDEREÇAMENTO
+     * ================================
      */
     async processarEntrada(dados) {
         const { codigoProduto, ruaLida, motivoAvaria } = dados;
 
-        // 1. REGRA DE AVARIA NO ESTOQUE (MISTURA PERMITIDA)
+        // 1. AVARIA (mistura permitida)
         if (motivoAvaria) {
             const sugestaoAvaria = await EnderecoFriozem.findOne({
                 where: {
@@ -24,26 +26,25 @@ class FriozemService {
             if (sugestaoAvaria) {
                 return {
                     acao: 'AVARIA_ESTOQUE',
-                    statusPallet: 'avaria_no_estoque',
                     endereco: sugestaoAvaria.codigo,
-                    mensagem: '🚨 MISTURA PERMITIDA: Destinar ao Drive-in de Retrabalho.',
+                    mensagem: '🚨 Destinar ao Drive-in de Retrabalho',
                     cor: 'laranja'
                 };
             }
         }
 
-        // 2. REGRA DE OURO: CROSS-DOCKING / PICKING (Posição 01)
-        const listaNecessidade = ['905', '910'];
-        if (listaNecessidade.includes(codigoProduto)) {
+        // 2. CROSS DOCK / PICKING
+        const listaPrioritaria = ['905', '910'];
+        if (listaPrioritaria.includes(codigoProduto)) {
             return {
                 acao: 'PICKING',
                 endereco: `${ruaLida}-01-01`,
-                mensagem: '🚀 PRIORIDADE: Enviar direto para SEPARAÇÃO (Posição 01).',
+                mensagem: '🚀 Enviar direto para Separação',
                 cor: 'azul'
             };
         }
 
-        // 3. BUSCA NO DRIVE-IN (Mesmo produto e OCUPADO)
+        // 3. DRIVE-IN OCUPADO (mesmo SKU)
         let sugestao = await EnderecoFriozem.findOne({
             where: {
                 rua: ruaLida,
@@ -57,47 +58,69 @@ class FriozemService {
             }]
         });
 
-        // 4. BUSCA NO DRIVE-IN (LIVRE)
+        // 4. DRIVE-IN LIVRE
         if (!sugestao) {
             sugestao = await EnderecoFriozem.findOne({
                 where: {
                     rua: ruaLida,
                     tipo: 'DRIVE-IN',
-                    status: 'LIVRE',
-                    isAreaRetrabalho: false
+                    status: 'LIVRE'
                 }
             });
         }
 
-        // 5. BUSCA EM PORTA-PALLET (LIVRE)
+        // 5. PORTA-PALLET
         if (!sugestao) {
             sugestao = await EnderecoFriozem.findOne({
-                where: { rua: ruaLida, tipo: 'PORTA-PALLET', status: 'LIVRE' }
+                where: {
+                    rua: ruaLida,
+                    tipo: 'PORTA-PALLET',
+                    status: 'LIVRE'
+                }
             });
         }
 
         return {
             acao: 'ARMAZENAR',
-            endereco: sugestao ? sugestao.codigo : 'INDISPONÍVEL',
-            mensagem: sugestao ? `Sugerido: ${sugestao.codigo}` : '❌ Nenhuma vaga livre nesta rua.',
+            endereco: sugestao ? sugestao.codigo : 'INDISPONIVEL',
+            mensagem: sugestao ? `Sugerido: ${sugestao.codigo}` : '❌ Sem vaga na rua',
             cor: sugestao ? 'verde' : 'vermelho'
         };
     }
 
     /**
-     * Função Administrativa: O Analista define se o endereço aceita mistura
+     * ================================
+     * 2️⃣ GERAR ORDEM AUTOMÁTICA
+     * ================================
+     * Usado após OCR / Planejamento
      */
-    async configurarRegraEndereco(enderecoId, permiteMistura) {
-        const endereco = await EnderecoFriozem.findByPk(enderecoId);
-        if (!endereco) throw new Error("Endereço não encontrado.");
+    async gerarOrdensMovimentacaoAutomaticas(listaPlanejamento, turno) {
+        const ordensCriadas = [];
 
-        await endereco.update({ isAreaRetrabalho: permiteMistura });
+        for (const item of listaPlanejamento) {
+            const { codigoProduto, quantidadeNecessaria, origem, destino } = item;
+
+            const ordem = await OrdemMovimentacaoFriozem.create({
+                codigoProduto,
+                enderecoOrigem: origem,
+                enderecoDestino: destino,
+                quantidade: quantidadeNecessaria,
+                turno,
+                prioridade: 1,
+                status: 'SUGERIDA',
+                criadoPor: 'SISTEMA'
+            });
+
+            ordensCriadas.push(ordem);
+        }
 
         return {
             sucesso: true,
-            mensagem: `Endereço ${endereco.codigo} atualizado: Aceita mistura = ${permiteMistura}`
+            total: ordensCriadas.length,
+            ordens: ordensCriadas
         };
     }
-}
 
-export default new FriozemService();
+/**
+ * ===*
+

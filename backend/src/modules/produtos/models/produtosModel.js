@@ -6,27 +6,47 @@ export default (sequelize) => {
         codigoSKU: {
             type: DataTypes.STRING,
             primaryKey: true,
-            allowNull: false,
+            allowNull: false
         },
+
         descricao: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: false
         },
+
+        categoria: {
+            type: DataTypes.STRING
+        },
+
+        pesoCaixaKg: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true
+        },
+
+        quantidadePorCaixa: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+
         quantidadePadraoPallet: {
             type: DataTypes.INTEGER,
-            defaultValue: 80,
+            defaultValue: 80
         },
-        categoria: {
-            type: DataTypes.STRING,
+
+        origemCadastro: {
+            type: DataTypes.ENUM('MANUAL', 'OCR', 'IMPORTACAO'),
+            defaultValue: 'MANUAL'
         },
+
         ativo: {
             type: DataTypes.BOOLEAN,
-            defaultValue: true,
-        },
+            defaultValue: true
+        }
     }, {
         tableName: 'produtos',
-        timestamps: true,
+        timestamps: true
     });
 
     return Produtos;
 };
+
