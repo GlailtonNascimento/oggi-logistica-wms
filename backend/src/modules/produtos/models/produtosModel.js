@@ -1,4 +1,3 @@
-// backend/src/modules/produtos/models/ProdutosModel.js
 import { DataTypes } from 'sequelize';
 
 export default (sequelize) => {
@@ -6,47 +5,36 @@ export default (sequelize) => {
         codigoSKU: {
             type: DataTypes.STRING,
             primaryKey: true,
-            allowNull: false
+            allowNull: false,
         },
 
         descricao: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+        },
+
+        // Quantas caixas cabem em 1 pallet
+        quantidadeCaixasPorPallet: {
+            type: DataTypes.INTEGER,
+            allowNull: false, // obrigatório
         },
 
         categoria: {
-            type: DataTypes.STRING
-        },
-
-        pesoCaixaKg: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: true
-        },
-
-        quantidadePorCaixa: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-
-        quantidadePadraoPallet: {
-            type: DataTypes.INTEGER,
-            defaultValue: 80
-        },
-
-        origemCadastro: {
-            type: DataTypes.ENUM('MANUAL', 'OCR', 'IMPORTACAO'),
-            defaultValue: 'MANUAL'
+            type: DataTypes.STRING,
+            allowNull: true,
         },
 
         ativo: {
             type: DataTypes.BOOLEAN,
-            defaultValue: true
-        }
+            defaultValue: true,
+        },
     }, {
         tableName: 'produtos',
-        timestamps: true
+        timestamps: true,
     });
 
     return Produtos;
 };
+
+
 

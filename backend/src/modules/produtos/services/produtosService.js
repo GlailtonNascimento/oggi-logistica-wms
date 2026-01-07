@@ -1,14 +1,17 @@
-// backend/src/modules/produtos/services/ProdutosServices.js
 import { Produtos } from '../models/index.js';
 import BaseService from './service.js';
 
 class ProdutosServices {
 
     // =====================================================
-    // 🧾 CADASTRO MANUAL (JÁ EXISTIA – MANTIDO)
+    // 🧾 CADASTRO MANUAL
     // =====================================================
     async cadastrar(dados) {
         const { codigoSKU } = dados;
+
+        if (!codigoSKU) {
+            throw new Error('Código SKU é obrigatório.');
+        }
 
         return BaseService.findOrCreate(
             Produtos,
@@ -18,7 +21,7 @@ class ProdutosServices {
     }
 
     // =====================================================
-    // 📥 IMPORTAÇÃO EM MASSA (EXCEL / CSV) – MANTIDO
+    // 📥 IMPORTAÇÃO EM MASSA (EXCEL / CSV / OCR)
     // =====================================================
     async importarLista(produtos) {
         return BaseService.bulkUpsert(
@@ -26,7 +29,7 @@ class ProdutosServices {
             produtos,
             [
                 'descricao',
-                'quantidadePadraoPallet',
+                'quantidadeCaixasPorPallet',
                 'categoria',
                 'ativo'
             ]
@@ -37,47 +40,43 @@ class ProdutosServices {
     // 🔎 VERIFICAÇÃO SIMPLES (USADO NO RECEBIMENTO)
     // =====================================================
     async verificar(sku) {
+        if (!sku) throw new Error('SKU não informado.');
         return BaseService.findByPk(Produtos, sku);
     }
 
     // =====================================================
-    // 🤖 CADASTRO AUTOMÁTICO VIA OCR (NOVO)
+    // 🤖 CADASTRO AUTOMÁTICO VIA OCR
     // =====================================================
     async cadastrarViaOCR(dadosOCR) {
         const {
             codigoSKU,
             descricao,
-            quantidadePadraoPallet = 80,
-            pesoCaixaKg = null,
-            categoria = 'IMPORTADO_OCR'
+            quantidadeCaixasPorPallet = null,
+            categoria = 'OCR'
         } = dadosOCR;
 
-        const [produto, criado] = await Produtos.findOrCreate({
+        if (!codigoSKU || !descricao) {
+            throw new Error('OCR inválido: códigoSKU e descrição são obrigatórios.');
+        }
+
+        const [produto] = await Produtos.findOrCreate({
             where: { codigoSKU },
             defaults: {
                 codigoSKU,
                 descricao,
-                quantidadePadraoPallet,
-                pesoCaixaKg,
+                quantidadeCaixasPorPallet, // pode ser null
                 categoria,
                 ativo: true
             }
         });
 
-        // 🔁 Se já existia, mas veio info nova → atualiza
-        if (!criado) {
-            await produto.update({
-                descricao: produto.descricao || descricao,
-                quantidadePadraoPallet: produto.quantidadePadraoPallet || quantidadePadraoPallet,
-                pesoCaixaKg: produto.pesoCaixaKg || pesoCaixaKg
-            });
-        }
-
+        // ✅ Nunca atualiza automaticamente
         return produto;
     }
 
+
     // =====================================================
-    // 📊 USADO PELO FRIOZEM / PLANEJAMENTO
+    // 📊 PADRÃO DE PALETIZAÇÃO (FRIOZEM / PLANEJAMENTO)
     // =====================================================
     async obterPadraoPallet(codigoSKU) {
         const produto = await Produtos.findByPk(codigoSKU);
@@ -85,11 +84,11 @@ class ProdutosServices {
 
         return {
             codigoSKU,
-            quantidadePadraoPallet: produto.quantidadePadraoPallet,
-            pesoCaixaKg: produto.pesoCaixaKg
+            quantidadeCaixasPorPallet: produto.quantidadeCaixasPorPallet
         };
     }
 }
 
 export default new ProdutosServices();
+
 
