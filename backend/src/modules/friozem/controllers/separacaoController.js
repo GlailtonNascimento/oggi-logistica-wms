@@ -1,4 +1,4 @@
-import SeparacaoService from './services/separacaoService.js';
+import SeparacaoService from '../services/separacaoService.js';
 
 /**
  * Controller responsável pela logística de saída (Frente Dia e Frente Noite)

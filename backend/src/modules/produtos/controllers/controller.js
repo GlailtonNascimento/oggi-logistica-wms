@@ -1,8 +1,7 @@
-import ProdutoController from './ProdutoController.js';
+import ProdutoController from './ProdutosController.js';
 
 export default {
     cadastrar: ProdutoController.cadastrar,
-    importarLista: ProdutoController.importarLista,
-    importarArquivo: ProdutoController.importarArquivo,
+    atualizar: ProdutoController.atualizar,
     verificar: ProdutoController.verificar
 };

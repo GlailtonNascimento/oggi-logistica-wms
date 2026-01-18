@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import FriozemController from "../friozemController.js";
-import SeparacaoController from "../separacaoController.js";
+import FriozemController from "../controllers/friozemController.js";
+import SeparacaoController from "../controllers/separacaoController.js";
 import { OrdemMovimentacaoController } from "../controllers/controller.js";
 
 const router = Router();

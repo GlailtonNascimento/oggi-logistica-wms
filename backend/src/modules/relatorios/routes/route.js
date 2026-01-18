@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import RelatorioController from '../controllers/relatorioController.js';
+import RelatorioController from '../controllers/relatoriosController.js';
 
 const router = Router();
 

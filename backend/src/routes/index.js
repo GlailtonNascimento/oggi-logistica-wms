@@ -11,7 +11,7 @@ import relatorios from "../modules/relatorios/routes/route.js";
 
 const router = express.Router();
 
-// 📌 Registrar rotas de cada módulo
+// ===== ROTAS DOS MÓDULOS =====
 router.use("/produtos", produtos);
 router.use("/armazenagem", armazenagem);
 router.use("/expedicao", expedicao);

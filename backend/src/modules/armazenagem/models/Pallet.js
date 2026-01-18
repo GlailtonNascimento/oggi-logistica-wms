@@ -1,6 +1,6 @@
 import { DataTypes } from 'sequelize';
 // Ajuste o caminho para a sua conexão com o banco de dados
-import { sequelize } from '../config/db.js';
+import { sequelize } from '../../../config/db.js';
 
 const Pallet = sequelize.define('Pallet', {
     id: {

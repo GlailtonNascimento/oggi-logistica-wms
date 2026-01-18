@@ -1,4 +1,4 @@
-import FriozemService from './services/friozemService.js';
+import FriozemService from '../services/friozemService.js';
 
 export default {
     /**

@@ -1,5 +1,5 @@
 import express from 'express';
-import RecebimentoController from '../controllers/recebimentoControllers.js';
+import RecebimentoController from '../controllers/recebimentoController.js';
 const router = express.Router();
 
 // Rotas Antigas (Fluxo de Documento de Entrada)

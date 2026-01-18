@@ -1,7 +1,7 @@
 // modules/relatorios/controllers/controller.js
 
-import relatoriosController from './relatoriosController.js';
+import RelatorioController from './relatoriosController.js';
 
 export {
-    relatoriosController
+    RelatorioController
 };

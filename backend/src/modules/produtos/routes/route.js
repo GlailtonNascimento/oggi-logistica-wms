@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import controller from '../controllers/ProdutoController.js';
+import controller from '../controllers/controller.js';
 
 const router = Router();
 
@@ -13,5 +13,6 @@ router.put('/:sku', controller.atualizar);
 router.get('/:sku', controller.verificar);
 
 export default router;
+
 
 
